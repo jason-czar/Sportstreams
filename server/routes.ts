@@ -1,20 +1,48 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import session from 'express-session';
+import connectPg from 'connect-pg-simple';
 import { storage } from "./storage";
 import { muxService } from "./services/mux";
 import { initializeWebSocket, getWebSocketService } from "./services/websocket";
 import { insertEventSchema, insertCameraSchema } from "@shared/schema";
+import { requireAuth, optionalAuth } from "./middleware/auth";
+import authRoutes from "./routes/auth";
 import { z } from "zod";
 import { randomBytes } from "crypto";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
   
+  // Configure session middleware
+  const pgSession = connectPg(session);
+  const sessionStore = new pgSession({
+    conString: process.env.DATABASE_URL,
+    createTableIfMissing: false,
+    ttl: 7 * 24 * 60 * 60 * 1000, // 1 week
+    tableName: 'sessions',
+  });
+
+  app.use(session({
+    store: sessionStore,
+    secret: process.env.SESSION_SECRET || 'dev-secret-change-in-production',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 1 week
+    },
+  }));
+
   // Initialize WebSocket service
   initializeWebSocket(httpServer);
 
-  // Create Event
-  app.post("/api/events", async (req, res) => {
+  // Auth routes
+  app.use('/api/auth', authRoutes);
+
+  // Create Event (requires authentication)
+  app.post("/api/events", requireAuth, async (req, res) => {
     try {
       // Parse and transform the data
       const body = req.body;
@@ -33,12 +61,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create Mux live stream (will use development mode if Mux isn't available)
       const muxStream = await muxService.createLiveStream();
       
-      // Create event in database
+      // Create event in database with organizer
       const event = await storage.createEvent({
         name: eventData.name,
+        description: eventData.description,
         sportType: eventData.sportType,
         startDateTime: eventData.startDateTime,
         duration: eventData.duration,
+        organizerId: req.user!.id, // Set the current user as organizer
+        isPublic: eventData.isPublic ?? true,
+        maxCameras: eventData.maxCameras ?? 9,
+      });
+
+      // Update with Mux data
+      const updatedEvent = await storage.updateEvent(event.id, {
         eventCode,
         muxStreamId: muxStream.id,
         playbackId: muxStream.playback_ids[0]?.id,
@@ -46,10 +82,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       res.json({
-        eventCode: event.eventCode,
+        eventCode: updatedEvent?.eventCode || eventCode,
         eventId: event.id,
-        ingestUrl: event.ingestUrl,
-        playbackId: event.playbackId,
+        ingestUrl: updatedEvent?.ingestUrl || muxStream.rtmp.url,
+        playbackId: updatedEvent?.playbackId || muxStream.playback_ids[0]?.id,
       });
     } catch (error) {
       console.error("Error creating event:", error);

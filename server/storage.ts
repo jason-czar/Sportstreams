@@ -1,18 +1,27 @@
 import { 
-  events, cameras, switchLogs, simulcastTargets,
+  events, cameras, switchLogs, simulcastTargets, users, chatMessages,
   type Event, type InsertEvent,
   type Camera, type InsertCamera,
   type SwitchLog, type InsertSwitchLog,
-  type SimulcastTarget, type InsertSimulcastTarget
+  type SimulcastTarget, type InsertSimulcastTarget,
+  type User, type InsertUser,
+  type ChatMessage, type InsertChatMessage
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc } from "drizzle-orm";
 
 export interface IStorage {
+  // Users
+  createUser(user: InsertUser): Promise<User>;
+  getUser(id: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  updateUser(id: string, updates: Partial<User>): Promise<User | undefined>;
+  
   // Events
   createEvent(event: InsertEvent): Promise<Event>;
   getEvent(id: string): Promise<Event | undefined>;
   getEventByCode(eventCode: string): Promise<Event | undefined>;
+  getEventsByOrganizer(organizerId: string): Promise<Event[]>;
   updateEvent(id: string, updates: Partial<Event>): Promise<Event | undefined>;
   deleteEvent(id: string): Promise<boolean>;
   
@@ -31,14 +40,51 @@ export interface IStorage {
   createSimulcastTarget(target: InsertSimulcastTarget): Promise<SimulcastTarget>;
   getSimulcastTargetsByEvent(eventId: string): Promise<SimulcastTarget[]>;
   deleteSimulcastTarget(id: string): Promise<boolean>;
+  
+  // Chat Messages
+  createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
+  getChatMessagesByEvent(eventId: string): Promise<ChatMessage[]>;
+  moderateChatMessage(id: string, moderatorId: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
+  // Users
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
+    return user;
+  }
+
+  async getUser(id: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user || undefined;
+  }
+
+  async updateUser(id: string, updates: Partial<User>): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning();
+    return user || undefined;
+  }
+
   // Events
   async createEvent(insertEvent: InsertEvent): Promise<Event> {
     const [event] = await db
       .insert(events)
-      .values(insertEvent)
+      .values({
+        ...insertEvent,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
       .returning();
     return event;
   }
@@ -53,10 +99,14 @@ export class DatabaseStorage implements IStorage {
     return event || undefined;
   }
 
+  async getEventsByOrganizer(organizerId: string): Promise<Event[]> {
+    return await db.select().from(events).where(eq(events.organizerId, organizerId));
+  }
+
   async updateEvent(id: string, updates: Partial<Event>): Promise<Event | undefined> {
     const [event] = await db
       .update(events)
-      .set(updates)
+      .set({ ...updates, updatedAt: new Date() })
       .where(eq(events.id, id))
       .returning();
     return event || undefined;
@@ -138,6 +188,34 @@ export class DatabaseStorage implements IStorage {
 
   async deleteSimulcastTarget(id: string): Promise<boolean> {
     const result = await db.delete(simulcastTargets).where(eq(simulcastTargets.id, id));
+    return (result.rowCount || 0) > 0;
+  }
+
+  // Chat Messages
+  async createChatMessage(insertMessage: InsertChatMessage): Promise<ChatMessage> {
+    const [message] = await db
+      .insert(chatMessages)
+      .values(insertMessage)
+      .returning();
+    return message;
+  }
+
+  async getChatMessagesByEvent(eventId: string): Promise<ChatMessage[]> {
+    return await db
+      .select()
+      .from(chatMessages)
+      .where(eq(chatMessages.eventId, eventId))
+      .orderBy(desc(chatMessages.createdAt));
+  }
+
+  async moderateChatMessage(id: string, moderatorId: string): Promise<boolean> {
+    const result = await db
+      .update(chatMessages)
+      .set({
+        isModerated: true,
+        moderatedBy: moderatorId,
+      })
+      .where(eq(chatMessages.id, id));
     return (result.rowCount || 0) > 0;
   }
 }
