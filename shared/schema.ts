@@ -14,8 +14,7 @@ export const events = pgTable("events", {
   muxStreamId: text("mux_stream_id"),
   playbackId: text("playback_id"),
   ingestUrl: text("ingest_url"),
-  youtubeKey: text("youtube_key"),
-  twitchKey: text("twitch_key"),
+
   status: text("status").notNull().default("idle"), // idle, live, ended
   activeCamera: text("active_camera"),
   createdAt: timestamp("created_at").default(sql`now()`),

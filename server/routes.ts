@@ -30,8 +30,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sportType: eventData.sportType,
         startDateTime: eventData.startDateTime,
         duration: eventData.duration,
-        youtubeKey: eventData.youtubeKey,
-        twitchKey: eventData.twitchKey,
         eventCode,
         muxStreamId: muxStream.id,
         playbackId: muxStream.playback_ids[0]?.id,
@@ -241,10 +239,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/events/:id/simulcast", async (req, res) => {
     try {
       const eventId = req.params.id;
-      const { youtubeKey, twitchKey } = z.object({
-        youtubeKey: z.string().optional(),
-        twitchKey: z.string().optional(),
-      }).parse(req.body);
 
       const event = await storage.getEvent(eventId);
       if (!event) {
@@ -263,7 +257,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const results = [];
 
-      // Add YouTube simulcast
+      // Use centralized YouTube stream key
+      const youtubeKey = process.env.YOUTUBE_STREAM_KEY;
       if (youtubeKey) {
         try {
           const youtubeTarget = await muxService.addSimulcastTarget(
@@ -286,7 +281,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Add Twitch simulcast
+      // Use centralized Twitch stream key
+      const twitchKey = process.env.TWITCH_STREAM_KEY;
       if (twitchKey) {
         try {
           const twitchTarget = await muxService.addSimulcastTarget(
@@ -307,6 +303,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } catch (error) {
           results.push({ platform: 'twitch', status: 'failed', error: error instanceof Error ? error.message : 'Unknown error' });
         }
+      }
+
+      if (results.length === 0) {
+        return res.status(400).json({ error: "No streaming keys configured. Please contact admin." });
       }
 
       res.json({ results });

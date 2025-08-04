@@ -15,18 +15,13 @@ import { z } from "zod";
 import { Video, Plus, Radio, KeyRound } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
-const createEventFormSchema = insertEventSchema.extend({
-  youtubeKey: z.string().optional(),
-  twitchKey: z.string().optional(),
-});
+const createEventFormSchema = insertEventSchema;
 
 type CreateEventForm = z.infer<typeof createEventFormSchema>;
 
 export default function CreateEvent() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const [showStreamingKeys, setShowStreamingKeys] = useState(false);
-
   const form = useForm<CreateEventForm>({
     resolver: zodResolver(createEventFormSchema),
     defaultValues: {
@@ -34,8 +29,6 @@ export default function CreateEvent() {
       sportType: "",
       startDateTime: new Date(),
       duration: 2,
-      youtubeKey: "",
-      twitchKey: "",
     },
   });
 
@@ -164,50 +157,27 @@ export default function CreateEvent() {
                   </div>
                 </div>
 
-                {/* Streaming Keys Section */}
+                {/* Auto-Streaming Info */}
                 <div className="bg-gray-700 rounded-lg p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold flex items-center text-white">
-                      <Radio className="text-red-500 mr-2" />
-                      Simulcast Settings (Optional)
+                  <div className="flex items-center mb-4">
+                    <Radio className="text-green-500 mr-2" />
+                    <h3 className="text-lg font-semibold text-white">
+                      Live Streaming
                     </h3>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowStreamingKeys(!showStreamingKeys)}
-                      className="border-gray-600 text-gray-300 hover:bg-gray-600"
-                    >
-                      <KeyRound className="w-4 h-4 mr-2" />
-                      {showStreamingKeys ? "Hide" : "Show"} Keys
-                    </Button>
                   </div>
-                  
-                  {showStreamingKeys && (
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="youtubeKey" className="text-white">YouTube Stream Key</Label>
-                        <Input
-                          id="youtubeKey"
-                          type="password"
-                          {...form.register("youtubeKey")}
-                          placeholder="Enter YouTube stream key"
-                          className="bg-gray-600 border-gray-500 text-white placeholder-gray-400 focus:ring-red-500 focus:border-red-500"
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="twitchKey" className="text-white">Twitch Stream Key</Label>
-                        <Input
-                          id="twitchKey"
-                          type="password"
-                          {...form.register("twitchKey")}
-                          placeholder="Enter Twitch stream key"
-                          className="bg-gray-600 border-gray-500 text-white placeholder-gray-400 focus:ring-indigo-500 focus:border-indigo-500"
-                        />
-                      </div>
-                    </div>
-                  )}
+                  <div className="space-y-2 text-gray-300">
+                    <p className="flex items-center">
+                      <span className="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
+                      Auto-streams to SportStream YouTube
+                    </p>
+                    <p className="flex items-center">
+                      <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
+                      Auto-streams to SportStream Twitch
+                    </p>
+                    <p className="text-sm text-gray-400 mt-3">
+                      Your event will automatically broadcast on our official channels for maximum reach
+                    </p>
+                  </div>
                 </div>
 
                 {/* Submit Button */}

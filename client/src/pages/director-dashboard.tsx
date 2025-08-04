@@ -87,21 +87,14 @@ export default function DirectorDashboard({ eventId }: DirectorDashboardProps) {
 
   const addSimulcastMutation = useMutation({
     mutationFn: async () => {
-      if (!event?.youtubeKey && !event?.twitchKey) {
-        throw new Error("No streaming keys configured");
-      }
-      
-      const response = await apiRequest("POST", `/api/events/${eventId}/simulcast`, {
-        youtubeKey: event.youtubeKey,
-        twitchKey: event.twitchKey,
-      });
+      const response = await apiRequest("POST", `/api/events/${eventId}/simulcast`, {});
       return response.json();
     },
     onSuccess: (data) => {
       const successCount = data.results.filter((r: any) => r.status === "added").length;
       toast({
         title: "Simulcast configured",
-        description: `${successCount} platform(s) connected`,
+        description: `${successCount} platform(s) connected to SportStream channels`,
       });
     },
     onError: (error) => {
@@ -209,7 +202,7 @@ export default function DirectorDashboard({ eventId }: DirectorDashboardProps) {
                 className="bg-indigo-600 hover:bg-indigo-700 text-white"
               >
                 <Share className="mr-2 h-4 w-4" />
-                Add Simulcast
+                Enable Simulcast
               </Button>
               
               <Button

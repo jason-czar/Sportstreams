@@ -40,7 +40,7 @@ Preferred communication style: Simple, everyday language.
 - **Primary CDN**: Mux Video as the origin server and content delivery network
 - **Streaming Protocol**: RTMP ingestion with HLS/LL-HLS playback for low latency
 - **Multi-Camera Support**: Director dashboard for real-time switching between up to 9 camera feeds
-- **Simulcasting**: Automatic forwarding to YouTube Live (RTMPS) and Twitch (RTMP) platforms
+- **Centralized Simulcasting**: Automatic forwarding to SportStream's official YouTube Live (RTMPS) and Twitch (RTMP) channels for unified brand experience
 
 ### Mobile-First Design
 - **Camera Integration**: Native device camera access via MediaRecorder API
@@ -52,6 +52,7 @@ Preferred communication style: Simple, everyday language.
 - **Event Access**: Event code-based authentication system
 - **Camera Registration**: One-time token system for secure camera joining
 - **CORS Configuration**: Proper cross-origin setup for mobile device compatibility
+- **Centralized Streaming**: All events broadcast to SportStream official YouTube and Twitch channels using centralized stream keys
 
 ## External Dependencies
 
