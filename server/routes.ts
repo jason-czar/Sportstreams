@@ -16,12 +16,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create Event
   app.post("/api/events", async (req, res) => {
     try {
-      const eventData = insertEventSchema.parse(req.body);
+      // Parse and transform the data
+      const body = req.body;
       
-      // Generate event code
-      const eventCode = `${eventData.name.replace(/\s+/g, '-').toUpperCase()}-${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`;
+      // Convert startDateTime string to Date object
+      if (body.startDateTime && typeof body.startDateTime === 'string') {
+        body.startDateTime = new Date(body.startDateTime);
+      }
       
-      // Create Mux live stream
+      const eventData = insertEventSchema.parse(body);
+      
+      // Generate unique event code
+      const timestamp = Date.now().toString(36).toUpperCase();
+      const eventCode = `${eventData.name.replace(/\s+/g, '').slice(0, 8).toUpperCase()}-${timestamp}`;
+      
+      // Create Mux live stream (will use development mode if Mux isn't available)
       const muxStream = await muxService.createLiveStream();
       
       // Create event in database

@@ -87,6 +87,12 @@ export const simulcastTargetsRelations = relations(simulcastTargets, ({ one }) =
 // Insert schemas
 export const insertEventSchema = createInsertSchema(events).omit({
   id: true,
+  eventCode: true,
+  muxStreamId: true,
+  playbackId: true,
+  ingestUrl: true,
+  status: true,
+  activeCamera: true,
   createdAt: true,
 });
 
