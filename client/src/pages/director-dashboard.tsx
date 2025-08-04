@@ -217,6 +217,71 @@ export default function DirectorDashboard({ eventId }: DirectorDashboardProps) {
           </CardContent>
         </Card>
 
+        {/* Live Stream URLs */}
+        <Card className="bg-gray-800 border-gray-700 mb-8">
+          <CardContent className="p-6">
+            <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
+              <Share className="mr-2 h-5 w-5" />
+              Watch Live Stream
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-gray-700 rounded-lg p-4">
+                <div className="flex items-center mb-3">
+                  <div className="w-6 h-6 bg-red-600 rounded mr-3 flex items-center justify-center">
+                    <span className="text-white text-xs font-bold">YT</span>
+                  </div>
+                  <h4 className="text-lg font-medium text-white">YouTube Live</h4>
+                </div>
+                <p className="text-sm text-gray-400 mb-3">
+                  Your event streams live on the SportStream YouTube channel
+                </p>
+                <a
+                  href="https://youtube.com/@sportstream/live"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm"
+                >
+                  <span className="mr-2">📺</span>
+                  Watch on YouTube
+                </a>
+              </div>
+
+              <div className="bg-gray-700 rounded-lg p-4">
+                <div className="flex items-center mb-3">
+                  <div className="w-6 h-6 bg-purple-600 rounded mr-3 flex items-center justify-center">
+                    <span className="text-white text-xs font-bold">T</span>
+                  </div>
+                  <h4 className="text-lg font-medium text-white">Twitch Live</h4>
+                </div>
+                <p className="text-sm text-gray-400 mb-3">
+                  Your event also streams live on the SportStream Twitch channel
+                </p>
+                <a
+                  href="https://twitch.tv/sportstream"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors text-sm"
+                >
+                  <span className="mr-2">🎮</span>
+                  Watch on Twitch
+                </a>
+              </div>
+            </div>
+            
+            <div className="mt-4 p-4 bg-blue-900/20 border border-blue-700 rounded-lg">
+              <div className="flex items-start">
+                <div className="w-5 h-5 text-blue-400 mt-0.5 mr-3">ℹ️</div>
+                <div>
+                  <p className="text-sm text-blue-300 font-medium mb-1">Unified Streaming</p>
+                  <p className="text-sm text-blue-200">
+                    All SportStream events broadcast simultaneously to both platforms under our official channels for maximum reach and consistent branding.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Camera Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           {event.cameras.map((camera) => (
