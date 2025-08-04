@@ -132,14 +132,32 @@ export default function CreateEvent() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="startDateTime" className="text-white">Start Date & Time</Label>
-                    <Input
-                      id="startDateTime"
-                      type="datetime-local"
-                      {...form.register("startDateTime", {
-                        setValueAs: (value) => new Date(value),
-                      })}
-                      className="bg-gray-700 border-gray-600 text-white focus:ring-indigo-500 focus:border-indigo-500"
-                    />
+                    <div className="flex gap-2">
+                      <Input
+                        id="startDateTime"
+                        type="datetime-local"
+                        {...form.register("startDateTime", {
+                          setValueAs: (value) => new Date(value),
+                        })}
+                        className="bg-gray-700 border-gray-600 text-white focus:ring-indigo-500 focus:border-indigo-500 flex-1"
+                      />
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          const now = new Date();
+                          const localDateTime = new Date(now.getTime() - (now.getTimezoneOffset() * 60000))
+                            .toISOString()
+                            .slice(0, 16);
+                          form.setValue("startDateTime", new Date(localDateTime));
+                          // Also update the input field display
+                          const input = document.getElementById("startDateTime") as HTMLInputElement;
+                          if (input) input.value = localDateTime;
+                        }}
+                        className="bg-gray-600 hover:bg-gray-500 text-white px-3 py-2 whitespace-nowrap"
+                      >
+                        Now
+                      </Button>
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="duration" className="text-white">Duration (hours)</Label>

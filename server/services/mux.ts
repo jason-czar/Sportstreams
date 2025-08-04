@@ -64,6 +64,12 @@ export class MuxService {
 
   async startLiveStream(streamId: string): Promise<void> {
     try {
+      // Handle development mode mock stream IDs
+      if (streamId.startsWith('dev-stream-')) {
+        console.log(`Development mode: Mock live stream ${streamId} ready to receive input`);
+        return;
+      }
+      
       // Mux live streams start automatically when receiving video input
       console.log(`Live stream ${streamId} ready to receive input`);
     } catch (error) {
@@ -74,6 +80,12 @@ export class MuxService {
 
   async stopLiveStream(streamId: string): Promise<void> {
     try {
+      // Handle development mode mock stream IDs
+      if (streamId.startsWith('dev-stream-')) {
+        console.log(`Development mode: Mock live stream ${streamId} stopped`);
+        return;
+      }
+      
       await video.liveStreams.signalComplete(streamId);
     } catch (error) {
       console.error('Error stopping Mux live stream:', error);
@@ -83,6 +95,17 @@ export class MuxService {
 
   async addSimulcastTarget(streamId: string, url: string, streamKey: string): Promise<MuxSimulcastTarget> {
     try {
+      // Handle development mode mock stream IDs
+      if (streamId.startsWith('dev-stream-')) {
+        const timestamp = Date.now().toString(36);
+        return {
+          id: `dev-target-${timestamp}`,
+          url,
+          stream_key: streamKey,
+          status: 'active'
+        };
+      }
+      
       const target = await video.liveStreams.createSimulcastTarget(streamId, {
         url,
         stream_key: streamKey
@@ -96,6 +119,16 @@ export class MuxService {
       };
     } catch (error) {
       console.error('Error adding simulcast target:', error);
+      // Return mock data for development mode
+      if (streamId.startsWith('dev-stream-')) {
+        const timestamp = Date.now().toString(36);
+        return {
+          id: `dev-target-${timestamp}`,
+          url,
+          stream_key: streamKey,
+          status: 'active'
+        };
+      }
       throw new Error('Failed to add simulcast target');
     }
   }
@@ -111,10 +144,19 @@ export class MuxService {
 
   async getLiveStreamStatus(streamId: string): Promise<string> {
     try {
+      // Handle development mode mock stream IDs
+      if (streamId.startsWith('dev-stream-')) {
+        return 'idle';
+      }
+      
       const liveStream = await video.liveStreams.retrieve(streamId);
       return liveStream.status;
     } catch (error) {
       console.error('Error getting live stream status:', error);
+      // Return idle status for development mode
+      if (streamId.startsWith('dev-stream-')) {
+        return 'idle';
+      }
       throw new Error('Failed to get live stream status');
     }
   }
