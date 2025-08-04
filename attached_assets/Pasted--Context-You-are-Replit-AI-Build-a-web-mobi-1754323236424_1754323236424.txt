@@ -1,0 +1,145 @@
+# =========================  Context  =========================
+You are Replit AI.  Build a web/mobile app that lets anyone point an iPhone
+at an amateur sports game, join a shared “event,” and let the event host
+switch between up-to-9 live camera feeds.  
+The program feed must simulcast to YouTube Live RTMPS and Twitch RTMP, using
+Mux Video as the origin and clip store.  The stack runs in a single Replit
+workspace: React + Express + Postgres.
+
+# ==========================  Task  ==========================
+1. Scaffold UI pages: CreateEvent, JoinAsCamera, DirectorDashboard,
+   ViewerPage (adaptive for web & mobile Safari/Chrome).
+2. Implement backend: event CRUD, camera registration, live-switching,
+   Mux Live-Stream management, simulcast target handling.
+3. Store metadata in Postgres (Replit DB or Neon).
+4. Provide REST + WebSocket endpoints so Gray FAST or other clients can
+   embed the program feed later.
+
+# ========================  Guidelines  ======================
+- Use Replit’s **Express template** for the server and **Vite React** for
+  the client .
+- Configure **replit.nix** to install `@mux/mux-node`, `dotenv`, `ws`,
+  and `pg`.
+- Keep comments in `//` style so Replit AI treats them as annotations
+  rather than code to execute  [oai_citation:0‡Replit Docs](https://docs.replit.com/replitai/replit-dot-md).
+- Simulcast targets may only be added when a Mux live-stream status is
+  **idle** .
+
+# ========================  Constraints  =====================
+- End-to-end latency target ≤ 5 s (Mux LL-HLS default) .
+- Each contributor camera authenticates with a one-time QR token.
+- Budget ≤ US $5 k / mo → stay on Mux, defer AWS IVS.
+
+# ===========================  UI  ===========================
+// -------------- 1. CreateEventPage.jsx --------------
+// Form: eventName, sportType, startDateTime, duration
+// Optional fields: youtubeKey, twitchKey
+// onSubmit → POST /api/events
+
+// -------------- 2. JoinAsCameraPage.jsx -------------
+// Scan QR (or enter eventCode) → fetch ingestUrl & streamKey
+// Show local video preview via MediaRecorder
+// “Go Live” button pushes RTMP from device to ingestUrl
+
+// -------------- 3. DirectorDashboard.jsx ------------
+// WebSocket subscription → thumbnails of live camera feeds
+// Click thumbnail → PATCH /api/events/:id/switch?cameraId=xyz
+// Buttons: StartStream, AddSimulcast, EndStream
+
+// -------------- 4. ViewerPage.jsx -------------------
+// <ReactPlayer url={programFeedUrl} playing />
+// Chat iframe embeds YouTube or Twitch
+
+# ======================  Backend Logic ======================
+// ---------- models.js ----------
+Event(id, name, sport, startTime, muxStreamId, playbackId,
+      ytKey, twKey, status)
+Camera(id, eventId, label, streamKey, rtmpUrl, live, thumbnailUrl)
+SwitchLog(id, eventId, cameraId, switchedAt)
+
+// ---------- routes/events.js ----------
+POST /api/events
+  • create Mux live-stream:
+    POST https://api.mux.com/video/v1/live-streams
+    {
+      "playback_policy":["public"],
+      "new_asset_settings":{"playback_policy":["public"]},
+      "reconnect_window":60
+    }                 // Mux API 
+  • store muxStreamId + ingest URL
+  • return {eventCode, ingestUrl}
+
+PATCH /api/events/:code/cameras
+  • generate streamKey = muxStreamId + rand
+  • return {ingestUrl: rtmp://global-live.mux.com:5222/app, streamKey}
+
+PATCH /api/events/:id/switch
+  • update SwitchLog
+  • WebSocket broadcast {programUrl}
+
+PATCH /api/events/:id/simulcast
+  • add YouTube & Twitch only if status==idle:
+    POST https://api.mux.com/video/v1/live-streams/{id}/simulcast-targets
+    {
+      "url":"rtmp://a.rtmp.youtube.com/live2",
+      "stream_key":"YOUTUBE_KEY"
+    }                 // YouTube RTMPS spec  [oai_citation:1‡Google Help](https://support.google.com/youtube/answer/10364924?hl=en)
+    {
+      "url":"rtmp://live.twitch.tv/app",
+      "stream_key":"TWITCH_KEY"
+    }                 // Twitch ingest 
+
+// ---------- websockets.js ----------
+ws.on('connection', (sock, req) => {
+  // subscribe to /events/:id
+});
+
+// ---------- database.sql ----------
+CREATE TABLE events (...);
+CREATE TABLE cameras (...);
+CREATE TABLE switch_log (...);
+
+# ================  Integration Steps (DevOps) ================
+// 1️⃣  Packages
+npm i express vite react react-dom @mux/mux-node dotenv ws pg
+
+// 2️⃣  .env
+MUX_TOKEN=...
+MUX_SECRET=...
+YOUTUBE_URL=rtmps://a.rtmp.youtube.com/live2   // YT help  [oai_citation:2‡Google Help](https://support.google.com/youtube/answer/10364924?hl=en)
+TWITCH_URL=rtmp://live.twitch.tv/app           // Twitch help 
+
+// 3️⃣  replit.nix (excerpt)
+packages = [ pkgs.nodejs pkgs.postgresql_16 ];
+
+# =============  Example JSON Payloads ================
+
+// ------ createEvent() response ------
+{
+  "eventCode":"BULLDOGS-VS-EAGLES-2025-09-14",
+  "ingestUrl":"rtmp://global-live.mux.com:5222/app",
+  "playbackId":"q1z2x3"
+}
+
+// ------ addSimulcastTargets() body ------
+{
+  "url":"rtmp://a.rtmp.youtube.com/live2",
+  "stream_key":"abcd-1234-efgh-5678"
+}
+
+// ------ WebSocket message sent to Viewer --------
+{
+  "type":"PROGRAM_UPDATE",
+  "programUrl":"https://stream.mux.com/q1z2x3.m3u8",
+  "activeCamera":"CAM-3"
+}
+
+# =================  Deployment Notes =================
+- Replit autoprovisions Postgres; initialise with `pg_ctl start` in
+  `repl.it` shell .  
+- Directors must call **StartStream** first (`POST /video/v1/live-streams/{id}/start`),
+  because Mux creates the playbackId only after the first live segment.  
+- Simulcasting to YouTube & Twitch is rate-limited to 5 targets per stream
+  (Mux docs) .  
+- iPhones push RTMP via Larix Broadcaster or native iOS RTMP clients; docs
+  note iOS 17 added HW RTMP encode  [oai_citation:3‡Switcher Studio](https://www.switcherstudio.com/?utm_source=chatgpt.com).
